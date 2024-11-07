@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Merger</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    .uploader {
+      border: 2px dashed #ccc;
+      padding: 20px;
+      width: 300px;
+      text-align: center;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+    .video-list {
+      margin-bottom: 20px;
+    }
+    .btn-merge {
+      background-color: #28a745;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-merge:hover {
+      background-color: #218838;
+    }
+    #result {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="uploader" onclick="document.getElementById('fileInput').click();">
+    Click here to upload videos
+  </div>
+  <input type="file" id="fileInput" multiple accept="video/mp4" style="display:none;">
+  <div class="video-list" id="videoList"></div>
+  <button class="btn-merge" onclick="mergeVideos()">Merge Videos</button>
+
+  <div id="result"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.10.0/dist/ffmpeg.min.js"></script>
+  <script>
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    const ffmpeg = createFFmpeg({ log: true });
+
+    const videoList = [];
+    const fileInput = document.getElementById('fileInput');
+    const videoListContainer = document.getElementById('videoList');
+    const resultContainer = document.getElementById('result');
+
+    fileInput.addEventListener('change', (event) => {
+      const files = event.target.files;
+      for (let i = 0; i < files.length; i++) {
+        videoList.push(files[i]);
+        const videoItem = document.createElement('div');
+        videoItem.textContent = files[i].name;
+        videoListContainer.appendChild(videoItem);
+      }
+    });
+
+    async function mergeVideos() {
+      if (videoList.length < 2) {
+        alert('Please upload at least two videos to merge.');
+        return;
+      }
+
+      resultContainer.innerHTML = 'Merging videos, please wait...';
+
+      // Load the ffmpeg library
+      await ffmpeg.load();
+
+      // Write each video to ffmpeg's virtual file system
+      for (let i = 0; i < videoList.length; i++) {
+        ffmpeg.FS('writeFile', `input${i}.mp4`, await fetchFile(videoList[i]));
+      }
+
+      // Create a list of input files for concatenation
+      let inputFiles = '';
+      for (let i = 0; i < videoList.length; i++) {
+        inputFiles += `file input${i}.mp4\n`;
+      }
+
+      // Write the list to a text file for ffmpeg concatenation
+      ffmpeg.FS('writeFile', 'input.txt', inputFiles);
+
+      // Run the concatenation command
+      await ffmpeg.run('-f', 'concat', '-safe', '0', '-i', 'input.txt', '-c', 'copy', 'output.mp4');
+
+      // Get the merged video output
+      const data = ffmpeg.FS('readFile', 'output.mp4');
+      const videoBlob = new Blob([data.buffer], { type: 'video/mp4' });
+      const videoUrl = URL.createObjectURL(videoBlob);
+
+      // Create a download link for the merged video
+      const downloadLink = document.createElement('a');
+      downloadLink.href = videoUrl;
+      downloadLink.download = 'merged_video.mp4';
+      downloadLink.textContent = 'Download Merged Video';
+      resultContainer.innerHTML = '';
+      resultContainer.appendChild(downloadLink);
+    }
+  </script>
+
+</body>
+</html>
+
