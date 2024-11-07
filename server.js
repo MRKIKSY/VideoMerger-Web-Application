@@ -8,6 +8,12 @@ app.use((req, res, next) => {
   next();
 });
 
+const path = require('path');
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'convert.html'));
+});
+
+
 // Serve static files from the 'public' folder
 app.use(express.static('public')); // The folder where your HTML and JS files arepublic
 
