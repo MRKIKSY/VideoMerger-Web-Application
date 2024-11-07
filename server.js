@@ -1,5 +1,6 @@
 const express = require('express');
 const app = express();
+const path = require('path');
 
 // Set security headers for SharedArrayBuffer support
 app.use((req, res, next) => {
@@ -8,14 +9,13 @@ app.use((req, res, next) => {
   next();
 });
 
-const path = require('path');
+// Serve static files from the 'public' folder
+app.use(express.static('public')); 
+
+// Serve convert.html at the root
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'convert.html'));
 });
-
-
-// Serve static files from the 'public' folder
-app.use(express.static('public')); // The folder where your HTML and JS files arepublic
 
 // Start the server on port 3000
 app.listen(3000, () => {
